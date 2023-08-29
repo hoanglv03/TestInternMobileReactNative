@@ -43,10 +43,6 @@ export default function ListMovie() {
   const onRefresh = useCallback(() => {
     setPage(1)
     setResult([])
-    setRefreshing(true);
-    setTimeout(() => {
-      getMoviesFromApi();
-    }, 1500);
   }, []);
   const loadMoreData = async () => {
     if (!isLoadingMore) {
