@@ -5,6 +5,7 @@ import {
   Image,
   RefreshControl,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import React, { useEffect, useState, useCallback } from "react";
 import AntDesign from "@expo/vector-icons/AntDesign";
@@ -16,40 +17,48 @@ import { LinearGradient } from "expo-linear-gradient";
 const ShimmerPlaceholder = createShimmerPlaceholder(LinearGradient);
 const fakeData = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 export default function ListMovie() {
+  const [page ,setPage ] = useState(1)
   const API_KEY =
-    "https://api.themoviedb.org/3/discover/movie?api_key=26763d7bf2e94098192e629eb975dab0&page=1";
+    `https://api.themoviedb.org/3/discover/movie?api_key=26763d7bf2e94098192e629eb975dab0&page=${page}`;
   const [result, setResult] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const getMoviesFromApi = async () => {
     try {
       const response = await fetch(API_KEY);
       const json = await response.json();
-      setResult(json.results);
+      setResult([...result, ...json.results]);
       setRefreshing(false);
+      setIsLoadingMore(false);
     } catch (error) {
-      console.error(error);
+      console.error("Error",error);
     }
   };
   useEffect(() => {
-    setRefreshing(true);
-    setResult(fakeData);
-    setTimeout(() => {
-      getMoviesFromApi();
-    }, 1500);
-  }, []);
+    if(page === 1){
+      setRefreshing(true);
+    }
+    getMoviesFromApi();
+  }, [page]);
   const onRefresh = useCallback(() => {
+    setPage(1)
+    setResult([])
     setRefreshing(true);
-    setResult(fakeData);
     setTimeout(() => {
       getMoviesFromApi();
     }, 1500);
   }, []);
-
+  const loadMoreData = async () => {
+    if (!isLoadingMore) {
+      setIsLoadingMore(true);
+      setPage(page + 1);
+    }
+  };
   return (
     <View style={styles.container}>
       {/* header */}
       <SafeAreaView style={styles.header}>
-        <Pressable style={styles.goBack}>
+        <Pressable style={styles.goBack} onPress={()=>setPage(page + 1)}>
           <AntDesign name="left" size={24} />
           <Text style={styles.titleHeader}>Back</Text>
         </Pressable>
@@ -58,11 +67,14 @@ export default function ListMovie() {
 
       <FlatGrid
         itemDimension={130}
-        data={result}
+        data={refreshing ? fakeData : result }
         style={styles.gridView}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        onEndReached={loadMoreData}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={isLoadingMore ? <ActivityIndicator size="large" /> : null}
         renderItem={({ item }) =>
           refreshing ? (
             <ShimmerPlaceholder
